@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Letícia 💖</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system;
+  background: #000;
+  color: #fff;
+}
+
+/* Splash */
+#splash {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #ff4da6, #ff99cc);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 28px;
+  z-index: 999;
+  animation: fadeOut 2s forwards 2s;
+}
+@keyframes fadeOut {
+  to { opacity: 0; visibility: hidden; }
+}
+
+/* Header */
+header {
+  text-align: center;
+  padding: 10px;
+}
+
+/* Galeria */
+.galeria {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+.galeria img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+
+/* Viewer */
+#viewer {
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:#000;
+  display:none;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+}
+#viewer img {
+  max-width: 90%;
+  max-height: 60%;
+}
+
+/* Editor */
+.editor {
+  position: absolute;
+  bottom:0;
+  width:100%;
+  background:#111;
+  padding:10px;
+  overflow-x: scroll;
+}
+
+button {
+  margin:4px;
+  padding:6px;
+  border:none;
+  border-radius:8px;
+  font-size:12px;
+}
+
+/* sliders */
+input[type=range] {
+  width: 100%;
+}
+</style>
+</head>
+
+<body>
+
+<div id="splash">💖 Letícia 💖</div>
+
+<header>
+  <input type="file" id="upload" multiple>
+</header>
+
+<div class="galeria" id="galeria"></div>
+
+<div id="viewer">
+  <img id="imgView">
+
+  <div class="editor">
+
+    <!-- FILTROS -->
+    <button onclick="preset('instagram')">Instagram</button>
+    <button onclick="preset('b612')">B612</button>
+    <button onclick="preset('cinema')">Cinema</button>
+    <button onclick="preset('dream')">Dream</button>
+    <button onclick="preset('dark')">Dark</button>
+
+    <!-- PREMIUM -->
+    <button onclick="filtroPremium('angel')">Angel</button>
+    <button onclick="filtroPremium('sunset')">Sunset</button>
+    <button onclick="filtroPremium('neon')">Neon</button>
+
+    <!-- IA / PRO -->
+    <button onclick="suavizarPele()">💆‍♀️ Pele</button>
+    <button onclick="adicionarGrao()">🎞️ Grão</button>
+    <button onclick="filtroCinema()">🎬 LUT</button>
+
+    <button onclick="deletar()">🗑️</button>
+
+    <hr>
+
+    <!-- SLIDERS -->
+    Brilho <input type="range" min="50" max="150" value="100" oninput="ajustes.brilho=this.value; atualizarFiltro()">
+    Contraste <input type="range" min="50" max="150" value="100" oninput="ajustes.contraste=this.value; atualizarFiltro()">
+    Saturação <input type="range" min="50" max="150" value="100" oninput="ajustes.saturacao=this.value; atualizarFiltro()">
+
+  </div>
+</div>
+
+<script>
+let fotos = JSON.parse(localStorage.getItem("fotos")) || [];
+let atual = null;
+
+let ajustes = { brilho:100, contraste:100, saturacao:100 };
+
+function salvar() {
+  localStorage.setItem("fotos", JSON.stringify(fotos));
+}
+
+function render() {
+  let galeria = document.getElementById("galeria");
+  galeria.innerHTML = "";
+
+  fotos.forEach((f,i)=>{
+    let img = document.createElement("img");
+    img.src = f.src;
+    img.style.filter = f.filtro;
+    img.onclick = ()=>abrir(i);
+    galeria.appendChild(img);
+  });
+}
+
+document.getElementById("upload").addEventListener("change", e=>{
+  for(let file of e.target.files){
+    let reader = new FileReader();
+    reader.onload = ev=>{
+      fotos.push({src:ev.target.result, filtro:""});
+      salvar();
+      render();
+    }
+    reader.readAsDataURL(file);
+  }
+});
+
+function abrir(i){
+  atual = i;
+  document.getElementById("viewer").style.display="flex";
+  atualizarViewer();
+}
+
+function atualizarViewer(){
+  let img = document.getElementById("imgView");
+  img.src = fotos[atual].src;
+  img.style.filter = fotos[atual].filtro;
+}
+
+function deletar(){
+  fotos.splice(atual,1);
+  salvar();
+  document.getElementById("viewer").style.display="none";
+  render();
+}
+
+/* PRESETS */
+function preset(nome){
+  let presets = {
+    instagram:{brilho:110,contraste:110,saturacao:120},
+    b612:{brilho:115,contraste:95,saturacao:130},
+    cinema:{brilho:95,contraste:130,saturacao:90},
+    dream:{brilho:120,contraste:80,saturacao:140},
+    dark:{brilho:80,contraste:140,saturacao:90}
+  };
+  Object.assign(ajustes, presets[nome]);
+  atualizarFiltro();
+}
+
+/* PREMIUM */
+function filtroPremium(nome){
+  let filtros={
+    angel:"brightness(120%) contrast(85%) saturate(140%) blur(0.5px)",
+    sunset:"hue-rotate(-15deg) saturate(130%)",
+    neon:"contrast(150%) saturate(180%)"
+  };
+  fotos[atual].filtro=filtros[nome];
+  salvar(); atualizarViewer();
+}
+
+/* SLIDER */
+function atualizarFiltro(){
+  let f=`brightness(${ajustes.brilho}%) contrast(${ajustes.contraste}%) saturate(${ajustes.saturacao}%)`;
+  fotos[atual].filtro=f;
+  salvar(); atualizarViewer();
+}
+
+/* PELE */
+function suavizarPele(){
+  let img=new Image();
+  img.src=fotos[atual].src;
+  img.onload=()=>{
+    let c=document.createElement("canvas");
+    let ctx=c.getContext("2d");
+    c.width=img.width; c.height=img.height;
+    ctx.drawImage(img,0,0);
+    ctx.globalAlpha=0.6;
+    ctx.filter="blur(2px)";
+    ctx.drawImage(c,0,0);
+    fotos[atual].src=c.toDataURL("image/jpeg",1);
+    salvar(); atualizarViewer();
+  }
+}
+
+/* GRÃO */
+function adicionarGrao(){
+  let img=new Image();
+  img.src=fotos[atual].src;
+  img.onload=()=>{
+    let c=document.createElement("canvas");
+    let ctx=c.getContext("2d");
+    c.width=img.width; c.height=img.height;
+    ctx.drawImage(img,0,0);
+    let data=ctx.getImageData(0,0,c.width,c.height);
+    for(let i=0;i<data.data.length;i+=4){
+      let noise=(Math.random()-0.5)*40;
+      data.data[i]+=noise;
+      data.data[i+1]+=noise;
+      data.data[i+2]+=noise;
+    }
+    ctx.putImageData(data,0,0);
+    fotos[atual].src=c.toDataURL("image/jpeg",1);
+    salvar(); atualizarViewer();
+  }
+}
+
+/* LUT */
+function filtroCinema(){
+  let img=new Image();
+  img.src=fotos[atual].src;
+  img.onload=()=>{
+    let c=document.createElement("canvas");
+    let ctx=c.getContext("2d");
+    c.width=img.width; c.height=img.height;
+    ctx.drawImage(img,0,0);
+    let data=ctx.getImageData(0,0,c.width,c.height);
+    for(let i=0;i<data.data.length;i+=4){
+      data.data[i]*=1.05;
+      data.data[i+1]*=0.95;
+      data.data[i+2]*=0.9;
+    }
+    ctx.putImageData(data,0,0);
+    fotos[atual].src=c.toDataURL("image/jpeg",1);
+    salvar(); atualizarViewer();
+  }
+}
+
+/* swipe */
+let startY=0;
+viewer.addEventListener("touchstart",e=>startY=e.touches[0].clientY);
+viewer.addEventListener("touchmove",e=>{
+  if(e.touches[0].clientY-startY>100){
+    viewer.style.display="none";
+  }
+});
+
+render();
+</script>
+
+</body>
+</html>
